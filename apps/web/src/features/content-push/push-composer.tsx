@@ -61,6 +61,8 @@ export function PushComposer({
   onSave: (record: PushInput) => Promise<PushRecord>
 }) {
   const { resolvedTheme } = useTheme()
+  // AI 优化按钮暂时隐藏，恢复时改为 true；相关代码完整保留。
+  const showAiActions = false
   const tags = initial?.tags ?? preset?.tags ?? []
   const prompt = initial?.prompt ?? preset?.prompt ?? ''
   const [title, setTitle] = useState(initial?.title ?? preset?.title ?? '')
@@ -341,7 +343,7 @@ export function PushComposer({
                         {optimizeChars} 字
                       </span>
                     )}
-                    {!bodyLocked && (
+                    {showAiActions && !bodyLocked && (
                       <Button
                         type='button'
                         size='sm'
@@ -385,22 +387,24 @@ export function PushComposer({
                         ? `AI 优化中 · ${optimizeChars} 字符`
                         : `富文本 · 约 ${textLength} 字`}
                     </span>
-                    <Button
-                      type='button'
-                      size='sm'
-                      variant='outline'
-                      className={aiActionButtonClass}
-                      onClick={() => void optimizeBody()}
-                      disabled={busy || bodyLocked}
-                      hidden={bodyLocked}
-                    >
-                      {optimizing === 'body' ? (
-                        <Loader2 className='size-3.5 animate-spin' />
-                      ) : (
-                        <Sparkles className='size-3.5' />
-                      )}
-                      {optimizing === 'body' ? '优化中' : 'AI 优化'}
-                    </Button>
+                    {showAiActions && (
+                      <Button
+                        type='button'
+                        size='sm'
+                        variant='outline'
+                        className={aiActionButtonClass}
+                        onClick={() => void optimizeBody()}
+                        disabled={busy || bodyLocked}
+                        hidden={bodyLocked}
+                      >
+                        {optimizing === 'body' ? (
+                          <Loader2 className='size-3.5 animate-spin' />
+                        ) : (
+                          <Sparkles className='size-3.5' />
+                        )}
+                        {optimizing === 'body' ? '优化中' : 'AI 优化'}
+                      </Button>
+                    )}
                     {bodyLocked && (
                       <span className='inline-flex items-center gap-1.5 rounded-full border bg-muted/45 px-2.5 py-1 text-xs text-muted-foreground'>
                         <Lock className='size-3.5' />

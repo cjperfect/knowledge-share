@@ -121,6 +121,8 @@ function ActivityForm({
   const [price, setPrice] = useState(String(activity?.price ?? 0))
   const [generating, setGenerating] = useState(false)
   const summaryLength = activitySummaryLength(summary)
+  // AI 优化按钮暂时隐藏，恢复时改为 true；相关代码完整保留。
+  const showAiActions = false
 
   async function handleFile(file: File | undefined) {
     if (!file) return
@@ -331,20 +333,22 @@ function ActivityForm({
               <Label htmlFor='activity-summary' className='shrink-0'>
                 活动概要
               </Label>
-              <Button
-                type='button'
-                size='sm'
-                className={`${aiActionButtonClass} shrink-0`}
-                onClick={() => void generateSummary()}
-                disabled={generating}
-              >
-                {generating ? (
-                  <Loader2 className='size-3.5 animate-spin' />
-                ) : (
-                  <Sparkles className='size-3.5' />
-                )}
-                {generating ? '正在生成…' : 'AI 生成摘要'}
-              </Button>
+              {showAiActions && (
+                <Button
+                  type='button'
+                  size='sm'
+                  className={`${aiActionButtonClass} shrink-0`}
+                  onClick={() => void generateSummary()}
+                  disabled={generating}
+                >
+                  {generating ? (
+                    <Loader2 className='size-3.5 animate-spin' />
+                  ) : (
+                    <Sparkles className='size-3.5' />
+                  )}
+                  {generating ? '正在生成…' : 'AI 生成摘要'}
+                </Button>
+              )}
             </div>
             {aiError && (
               <p role='alert' className='text-xs text-destructive'>

@@ -66,6 +66,10 @@ function ReviewForm({
   const [streamChars, setStreamChars] = useState(0)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  // AI 优化按钮暂时隐藏，恢复时改为 true；相关代码完整保留。
+  const showAiActions = false
+  // 语音输入暂时隐藏，恢复时改为 true；相关代码完整保留。
+  const showSpeechInput = false
   const loadedId = useRef<string | null>(null)
   const editorRef = useRef<ArticleEditorInstance | null>(null)
   const speechBlockId = useRef<string | null>(null)
@@ -247,7 +251,7 @@ function ReviewForm({
     clearInterimBlock()
     const currentDocument = editorRef.current?.document ?? blocks
     if (!documentHasContent(currentDocument)) {
-      setError('请先通过语音输入或手动填写回顾正文，再保存活动回顾。')
+      setError('请先填写回顾正文，再保存活动回顾。')
       return
     }
     setError('')
@@ -324,53 +328,63 @@ function ReviewForm({
                     <div>
                       <Label>回顾正文</Label>
                       <p className='mt-1 text-xs leading-5 text-muted-foreground'>
-                        点击语音输入，识别结果会直接写入正文；也可以手动继续编辑。
+                        {showSpeechInput
+                          ? '点击语音输入，识别结果会直接写入正文；也可以手动继续编辑。'
+                          : '直接在正文中填写或编辑回顾内容。'}
                       </p>
                     </div>
-                    <Button
-                      type='button'
-                      size='sm'
-                      variant={speech.listening ? 'secondary' : 'outline'}
-                      disabled={generating || saving || !speech.supported}
-                      title={
-                        speech.supported
-                          ? undefined
-                          : '当前浏览器不支持语音输入，请直接编辑正文'
-                      }
-                      onClick={() => {
-                        if (speech.listening) speech.stop()
-                        else speech.start()
-                      }}
-                      className='shrink-0'
-                    >
-                      {speech.listening ? (
-                        <Square className='size-3.5 fill-current' />
-                      ) : (
-                        <Mic className='size-3.5' />
-                      )}
-                      {speech.listening ? '结束语音' : '语音输入'}
-                    </Button>
+                    {showSpeechInput && (
+                      <Button
+                        type='button'
+                        size='sm'
+                        variant={speech.listening ? 'secondary' : 'outline'}
+                        disabled={generating || saving || !speech.supported}
+                        title={
+                          speech.supported
+                            ? undefined
+                            : '当前浏览器不支持语音输入，请直接编辑正文'
+                        }
+                        onClick={() => {
+                          if (speech.listening) speech.stop()
+                          else speech.start()
+                        }}
+                        className='shrink-0'
+                      >
+                        {speech.listening ? (
+                          <Square className='size-3.5 fill-current' />
+                        ) : (
+                          <Mic className='size-3.5' />
+                        )}
+                        {speech.listening ? '结束语音' : '语音输入'}
+                      </Button>
+                    )}
                   </div>
 
-                  {speech.listening && (
+                  {showSpeechInput && speech.listening && (
                     <div className='flex items-start gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-xs leading-5 text-primary'>
                       <AudioLines className='mt-0.5 size-3.5 shrink-0' />
                       <span>正在聆听，识别文字会实时写入正文…</span>
                     </div>
                   )}
 
-                  <div className='flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground'>
-                    <span>
-                      {speech.supported
-                        ? '语音识别使用浏览器能力，建议使用 Chrome / Edge。'
-                        : '当前浏览器不支持语音识别，可以直接在正文中手动输入。'}
-                    </span>
+                  <div
+                    className={`flex flex-wrap items-center gap-2 text-xs text-muted-foreground ${
+                      showSpeechInput ? 'justify-between' : 'justify-end'
+                    }`}
+                  >
+                    {showSpeechInput && (
+                      <span>
+                        {speech.supported
+                          ? '语音识别使用浏览器能力，建议使用 Chrome / Edge。'
+                          : '当前浏览器不支持语音识别，可以直接在正文中手动输入。'}
+                      </span>
+                    )}
                     <span className='tabular-nums'>
                       富文本 · 约 {textLength} 字
                     </span>
                   </div>
 
-                  {speech.error && (
+                  {showSpeechInput && speech.error && (
                     <p role='alert' className='text-sm text-destructive'>
                       {speech.error}
                     </p>
@@ -387,43 +401,45 @@ function ReviewForm({
                   />
                 </div>
 
-                <div className='flex flex-col gap-3 rounded-lg border bg-muted/25 p-3 sm:flex-row sm:items-center sm:justify-between'>
-                  <div className='space-y-1'>
-                    <p className='flex items-center gap-1.5 text-sm font-medium'>
-                      <Sparkles className='size-4 text-primary' />
-                      AI 优化正文
-                    </p>
-                    <p className='text-xs leading-5 text-muted-foreground'>
-                      AI
-                      会读取当前正文，整理成段落、小标题和要点；会覆盖当前正文，生成后仍可修改。
-                    </p>
-                  </div>
-                  <div className='flex shrink-0 flex-wrap items-center gap-2'>
-                    {generating && (
-                      <span
-                        className='text-xs text-muted-foreground tabular-nums'
-                        aria-live='polite'
-                      >
-                        正在整理 · {streamChars} 字符
-                      </span>
-                    )}
-                    <Button
-                      type='button'
-                      size='sm'
-                      variant='outline'
-                      className={aiActionButtonClass}
-                      onClick={() => void generateReview()}
-                      disabled={generating || saving || textLength === 0}
-                    >
-                      {generating ? (
-                        <Loader2 className='size-4 animate-spin' />
-                      ) : (
-                        <Sparkles className='size-4' />
+                {showAiActions && (
+                  <div className='flex flex-col gap-3 rounded-lg border bg-muted/25 p-3 sm:flex-row sm:items-center sm:justify-between'>
+                    <div className='space-y-1'>
+                      <p className='flex items-center gap-1.5 text-sm font-medium'>
+                        <Sparkles className='size-4 text-primary' />
+                        AI 优化正文
+                      </p>
+                      <p className='text-xs leading-5 text-muted-foreground'>
+                        AI
+                        会读取当前正文，整理成段落、小标题和要点；会覆盖当前正文，生成后仍可修改。
+                      </p>
+                    </div>
+                    <div className='flex shrink-0 flex-wrap items-center gap-2'>
+                      {generating && (
+                        <span
+                          className='text-xs text-muted-foreground tabular-nums'
+                          aria-live='polite'
+                        >
+                          正在整理 · {streamChars} 字符
+                        </span>
                       )}
-                      {generating ? '正在生成…' : 'AI 优化正文'}
-                    </Button>
+                      <Button
+                        type='button'
+                        size='sm'
+                        variant='outline'
+                        className={aiActionButtonClass}
+                        onClick={() => void generateReview()}
+                        disabled={generating || saving || textLength === 0}
+                      >
+                        {generating ? (
+                          <Loader2 className='size-4 animate-spin' />
+                        ) : (
+                          <Sparkles className='size-4' />
+                        )}
+                        {generating ? '正在生成…' : 'AI 优化正文'}
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {error && (
                   <p role='alert' className='text-sm text-destructive'>
