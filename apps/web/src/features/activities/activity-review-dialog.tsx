@@ -184,20 +184,22 @@ function ReviewForm({
     }
 
     let markdown = ''
-    let rendered = false
     const applyMarkdown = (text: string) => {
       const editor = editorRef.current
       if (!editor) return
       const next = markdownToEditorBlocks(editor, text)
       if (!next.length) return
       editor.replaceBlocks(editor.document, next)
-      rendered = true
       setBlocks(editor.document)
       setStreamChars(documentText(editor.document).replace(/\s/g, '').length)
     }
     setError('')
     setStreamChars(0)
     setGenerating(true)
+    const editor = editorRef.current
+    const emptyDocument: PartialBlock[] = [{ type: 'paragraph', content: '' }]
+    if (editor) editor.replaceBlocks(editor.document, emptyDocument)
+    setBlocks(emptyDocument)
     try {
       await activitiesApi.generateReviewStream(
         {
@@ -211,7 +213,6 @@ function ReviewForm({
           applyMarkdown(markdown)
         }
       )
-      const editor = editorRef.current
       if (!editor || !markdown.trim()) {
         throw new Error('AI 未返回回顾内容，请稍后重试。')
       }
@@ -225,10 +226,11 @@ function ReviewForm({
         description: '正文已填入富文本，可以继续手动调整。',
       })
     } catch (failure) {
-      const editor = editorRef.current
-      if (rendered && editor) {
+      if (editor) {
         editor.replaceBlocks(editor.document, currentDocument)
         setBlocks(editor.document)
+      } else {
+        setBlocks(currentDocument)
       }
       setError(
         failure instanceof Error ? failure.message : '生成失败，请稍后重试。'
@@ -380,6 +382,7 @@ function ReviewForm({
                     onChange={setBlocks}
                     editorRef={editorRef}
                     theme={resolvedTheme}
+                    readOnly={generating}
                     heightClassName='max-h-[420px] min-h-[260px]'
                   />
                 </div>

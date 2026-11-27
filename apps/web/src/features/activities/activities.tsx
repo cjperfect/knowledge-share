@@ -180,15 +180,19 @@ function ActivityForm({
       return
     }
 
+    const previous = summary
     setAiError('')
+    setSummary('')
     setGenerating(true)
     try {
       const draft = await activitiesApi.generateSummaryStream(
         {
           title: title.trim(),
-          summary: plainSummaryText(summary).slice(0, 100),
+          summary: plainSummaryText(previous).slice(0, 100),
         },
-        () => {}
+        (_delta, full) => {
+          setSummary(plainSummaryText(full).slice(0, 100))
+        }
       )
       const finalText = plainSummaryText(draft).slice(0, 100)
       if (!finalText) throw new Error('AI 未返回活动概要，请稍后重试。')
@@ -197,6 +201,7 @@ function ActivityForm({
         description: '可以继续手动调整。',
       })
     } catch (failure) {
+      setSummary(previous)
       setAiError(
         failure instanceof Error ? failure.message : '生成失败，请稍后重试。'
       )
@@ -352,6 +357,7 @@ function ActivityForm({
               aria-required='true'
               rows={4}
               value={summary}
+              disabled={generating}
               onChange={(event) => setSummary(event.target.value)}
               placeholder='请输入活动概要，最多 100 字。'
             />
@@ -376,7 +382,7 @@ function ActivityForm({
                 取消
               </Button>
             </DialogClose>
-            <Button type='submit' disabled={saving || processing}>
+            <Button type='submit' disabled={saving || processing || generating}>
               {processing ? '正在处理图片…' : saving ? '正在保存…' : '保存活动'}
             </Button>
           </DialogFooter>

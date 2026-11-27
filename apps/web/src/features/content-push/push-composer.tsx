@@ -94,17 +94,18 @@ export function PushComposer({
       return
     }
     const previous = summary
-    let latest = summary
+    let latest = ''
     setFormError('')
+    setSummary('')
     setOptimizeChars(0)
     setOptimizing('summary')
     try {
       await pushesApi.optimizeSummaryStream(
-        { title, tags, summary, prompt },
+        { title, tags, summary: previous, prompt },
         (_delta, full) => {
           const clean = plainSummaryText(full)
           latest = clean
-          if (clean) setSummary(clean)
+          setSummary(clean)
           setOptimizeChars(Array.from(clean).length)
         }
       )
@@ -133,20 +134,22 @@ export function PushComposer({
     }
     const currentDocument = editorRef.current?.document ?? blocks
     let markdown = ''
-    let rendered = false
     const applyMarkdown = (text: string) => {
       const editor = editorRef.current
       if (!editor) return
       const next = markdownToEditorBlocks(editor, text)
       if (!next.length) return
       editor.replaceBlocks(editor.document, next)
-      rendered = true
       setBlocks(editor.document)
       setOptimizeChars(documentText(editor.document).replace(/\s/g, '').length)
     }
     setFormError('')
     setOptimizeChars(0)
     setOptimizing('body')
+    const emptyDocument: PartialBlock[] = [{ type: 'paragraph', content: '' }]
+    const editor = editorRef.current
+    if (editor) editor.replaceBlocks(editor.document, emptyDocument)
+    setBlocks(emptyDocument)
     try {
       await pushesApi.optimizeBodyStream(
         {
@@ -160,7 +163,6 @@ export function PushComposer({
           applyMarkdown(markdown)
         }
       )
-      const editor = editorRef.current
       if (!editor || !markdown.trim()) {
         throw new Error('AI 未返回正文内容，请稍后重试。')
       }
@@ -174,10 +176,11 @@ export function PushComposer({
         description: '内容已填入富文本，可以继续手动调整。',
       })
     } catch (error) {
-      const editor = editorRef.current
-      if (rendered && editor) {
+      if (editor) {
         editor.replaceBlocks(editor.document, currentDocument)
         setBlocks(editor.document)
+      } else {
+        setBlocks(currentDocument)
       }
       toast.error(
         error instanceof Error ? error.message : '正文优化失败，请稍后重试。'
@@ -417,7 +420,7 @@ export function PushComposer({
                     onChange={setBlocks}
                     theme={resolvedTheme}
                     editorRef={editorRef}
-                    readOnly={bodyLocked}
+                    readOnly={bodyLocked || optimizing === 'body'}
                   />
                 </div>
               </div>
