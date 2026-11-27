@@ -1,0 +1,46 @@
+{
+  "name": "knowledge-share",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Knowledge Share monorepo（C 端官网 apps/website + 管理后台 apps/web + 后端 apps/backend）",
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "packageManager": "pnpm@10.25.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel --if-present dev",
+    "dev:web": "pnpm --filter @knowledge-share/web dev",
+    "dev:backend": "pnpm --filter @knowledge-share/backend dev",
+    "dev:website": "pnpm --filter @knowledge-share/website dev",
+    "build": "pnpm -r --if-present build",
+    "build:website": "pnpm --filter @knowledge-share/website build",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "pnpm -r --if-present test",
+    "prepare": "husky || true",
+    "dev:mp": "pnpm --filter @knowledge-share/miniprogram dev",
+    "build:mp": "pnpm --filter @knowledge-share/miniprogram build"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
+    "@eslint/js": "^10.0.1",
+    "@tanstack/eslint-plugin-query": "^5.99.0",
+    "@trivago/prettier-plugin-sort-imports": "^6.0.2",
+    "eslint": "^10.15.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.14.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.2",
+    "prettier": "^3.8.3",
+    "prettier-plugin-tailwindcss": "^0.7.2",
+    "typescript-eslint": "^8.74.0"
+  }
+}

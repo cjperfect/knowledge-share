@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="512" height="512" role="img" aria-label="研途">
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="#111113"/>
+  <g fill="none" stroke="#FFFFFF" stroke-width="6.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19 18L32 33L45 18"/>
+    <path d="M32 33V47"/>
+  </g>
+  <circle cx="45" cy="18" r="4" fill="#2997FF"/>
+</svg>

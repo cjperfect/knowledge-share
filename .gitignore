@@ -1,0 +1,47 @@
+# 依赖与构建产物
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+**/dist-ssr/
+coverage/
+**/coverage/
+*.tsbuildinfo
+**/*.tsbuildinfo
+.swc/
+**/.swc/
+
+# 本地环境变量（保留示例文件）
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# 测试与工具产物
+**/__screenshots__/
+**/.vitest-attachments/
+**/.tanstack/
+apps/web/.tanstack/
+**/.next/
+apps/website/.next/
+
+# 上传文件
+apps/backend/uploads/
+
+# 日志与系统文件
+logs/
+*.log
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# Husky 内部目录
+.husky/_
+
+# 部署产物
+apps/web/.netlify/
+
+# TypeScript incremental build info
+*.tsbuildinfo

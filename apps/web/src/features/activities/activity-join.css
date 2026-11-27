@@ -1,0 +1,16 @@
+.join-hero-shade {
+  background:
+    linear-gradient(
+      180deg,
+      rgb(6 16 33 / 68%) 0%,
+      rgb(6 16 33 / 12%) 32%,
+      rgb(6 16 33 / 64%) 65%,
+      rgb(6 16 33 / 96%) 100%
+    ),
+    linear-gradient(90deg, rgb(6 16 33 / 34%), transparent 85%);
+}
+
+.join-event-title {
+  font-family: 'Songti SC', 'Noto Serif CJK SC', 'SimSun', serif;
+  text-wrap: balance;
+}

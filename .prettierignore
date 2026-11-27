@@ -1,0 +1,15 @@
+node_modules/
+**/dist/
+**/dist-ssr/
+**/coverage/
+**/.tanstack/
+**/.next/
+**/*.tsbuildinfo
+**/__screenshots__/
+**/.vitest-attachments/
+pnpm-lock.yaml
+**/CHANGELOG.md
+apps/web/src/routeTree.gen.ts
+
+# Next.js generated type declarations
+**/next-env.d.ts
