@@ -5,7 +5,6 @@ import { getDisplayNameInitials } from '@/util/utils'
 import {
   CalendarDays,
   ChevronsUpDown,
-  ClipboardList,
   GraduationCap,
   HandCoins,
   LayoutDashboard,
@@ -240,27 +239,6 @@ function OperationsSidebar() {
             </SidebarMenu>
           </SidebarGroup>
         )}
-        <SidebarGroup className='group-data-[collapsible=icon]:px-0'>
-          <SidebarGroupLabel>测试功能</SidebarGroupLabel>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                tooltip='报名页预览'
-                className='mx-auto'
-              >
-                <Link
-                  to='/join'
-                  search={{ activity: 'signup-preview' }}
-                  onClick={() => setOpenMobile(false)}
-                >
-                  <ClipboardList />
-                  <span>报名页预览</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className='border-t border-sidebar-border/60 p-2'>
         <UserMenu />

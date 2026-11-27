@@ -14,7 +14,6 @@ import { Route as ActivitiesRouteImport } from './routes/activities'
 import { Route as CommissionsRouteImport } from './routes/commissions'
 import { Route as ContentPushRouteImport } from './routes/content-push'
 import { Route as DashboardRouteImport } from './routes/dashboard'
-import { Route as JoinRouteImport } from './routes/join'
 import { Route as PosterTemplatesRouteImport } from './routes/poster-templates'
 import { Route as ProductsRouteImport } from './routes/products'
 import { Route as ShareStatisticsRouteImport } from './routes/share-statistics'
@@ -50,11 +49,6 @@ const ContentPushRoute = ContentPushRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const JoinRoute = JoinRouteImport.update({
-  id: '/join',
-  path: '/join',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PosterTemplatesRoute = PosterTemplatesRouteImport.update({
@@ -119,7 +113,6 @@ export interface FileRoutesByFullPath {
   '/commissions': typeof CommissionsRoute
   '/content-push': typeof ContentPushRoute
   '/dashboard': typeof DashboardRoute
-  '/join': typeof JoinRoute
   '/poster-templates': typeof PosterTemplatesRoute
   '/products': typeof ProductsRoute
   '/share-statistics': typeof ShareStatisticsRoute
@@ -138,7 +131,6 @@ export interface FileRoutesByTo {
   '/commissions': typeof CommissionsRoute
   '/content-push': typeof ContentPushRoute
   '/dashboard': typeof DashboardRoute
-  '/join': typeof JoinRoute
   '/poster-templates': typeof PosterTemplatesRoute
   '/products': typeof ProductsRoute
   '/share-statistics': typeof ShareStatisticsRoute
@@ -158,7 +150,6 @@ export interface FileRoutesById {
   '/commissions': typeof CommissionsRoute
   '/content-push': typeof ContentPushRoute
   '/dashboard': typeof DashboardRoute
-  '/join': typeof JoinRoute
   '/poster-templates': typeof PosterTemplatesRoute
   '/products': typeof ProductsRoute
   '/share-statistics': typeof ShareStatisticsRoute
@@ -179,7 +170,6 @@ export interface FileRouteTypes {
     | '/commissions'
     | '/content-push'
     | '/dashboard'
-    | '/join'
     | '/poster-templates'
     | '/products'
     | '/share-statistics'
@@ -198,7 +188,6 @@ export interface FileRouteTypes {
     | '/commissions'
     | '/content-push'
     | '/dashboard'
-    | '/join'
     | '/poster-templates'
     | '/products'
     | '/share-statistics'
@@ -217,7 +206,6 @@ export interface FileRouteTypes {
     | '/commissions'
     | '/content-push'
     | '/dashboard'
-    | '/join'
     | '/poster-templates'
     | '/products'
     | '/share-statistics'
@@ -237,7 +225,6 @@ export interface RootRouteChildren {
   CommissionsRoute: typeof CommissionsRoute
   ContentPushRoute: typeof ContentPushRoute
   DashboardRoute: typeof DashboardRoute
-  JoinRoute: typeof JoinRoute
   PosterTemplatesRoute: typeof PosterTemplatesRoute
   ProductsRoute: typeof ProductsRoute
   ShareStatisticsRoute: typeof ShareStatisticsRoute
@@ -286,13 +273,6 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/join': {
-      id: '/join'
-      path: '/join'
-      fullPath: '/join'
-      preLoaderRoute: typeof JoinRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/poster-templates': {
@@ -381,7 +361,6 @@ const rootRouteChildren: RootRouteChildren = {
   CommissionsRoute: CommissionsRoute,
   ContentPushRoute: ContentPushRoute,
   DashboardRoute: DashboardRoute,
-  JoinRoute: JoinRoute,
   PosterTemplatesRoute: PosterTemplatesRoute,
   ProductsRoute: ProductsRoute,
   ShareStatisticsRoute: ShareStatisticsRoute,
