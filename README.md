@@ -338,18 +338,8 @@ pnpm install
 #### 2. 准备环境变量
 
 ```bash
-# 根目录：Docker Compose 使用的 Redis 账号密码
-cp .env.example .env
-# 应用环境变量
 cp apps/backend/.env.example apps/backend/.env
 cp apps/website/.env.example apps/website/.env.local
-```
-
-根目录 `.env`：
-
-```bash
-REDIS_USERNAME=knowledge-share
-REDIS_PASSWORD=knowledge-share-redis
 ```
 
 本地默认关键配置：
@@ -358,10 +348,10 @@ REDIS_PASSWORD=knowledge-share-redis
 # apps/backend/.env
 NODE_ENV=development
 DATABASE_URL=mysql://chenjiang:chenjiang@127.0.0.1:3306/knowledge_share
-REDIS_URL=redis://knowledge-share:knowledge-share-redis@127.0.0.1:6379/0
+REDIS_URL=redis://knowledge-share:chenjiang@127.0.0.1:6379/0
 ```
 
-`REDIS_URL` 里的用户名、密码必须和根目录 `.env` 保持一致，修改后重启后端。
+MySQL 和 Redis 的容器账号密码直接写在 `docker-compose.yml` 的 `environment` 和 Redis ACL 启动命令里。修改 Redis 密码时，要同步修改 `docker-compose.yml` 和 `apps/backend/.env` 的 `REDIS_URL`，再重建 Redis、重启后端。
 
 ```bash
 # apps/website/.env.local
@@ -482,32 +472,14 @@ ports:
   - '127.0.0.1:6379:6379'
 ```
 
-然后创建 Docker Compose 的 Redis 账号密码：
-
-```bash
-cd /srv/knowledge-share
-cp .env.example .env
-vim .env
-```
-
-```bash
-# /srv/knowledge-share/.env
-REDIS_USERNAME=knowledge-share
-REDIS_PASSWORD=生产环境Redis密码
-```
-
-生成随机密码：
-
-```bash
-openssl rand -hex 24
-```
-
-把输出填到 `REDIS_PASSWORD`，并同步写入后端 `REDIS_URL`。密码建议只用字母和数字，避免 URL 和 ACL 特殊字符转义。
+然后启动：
 
 ```bash
 docker compose up -d
 docker compose ps
 ```
+
+Redis 的 ACL 用户名、密码直接写在 `docker-compose.yml` 的 `redis.command` 里，不再读取根目录 `.env`。账号是 `knowledge-share`，密码与后端 `REDIS_URL` 保持一致。
 
 Redis 已开启 ACL 认证：默认用户和业务用户都需要密码，未认证执行 `redis-cli ping` 会返回 `NOAUTH Authentication required.`。
 
@@ -525,7 +497,7 @@ vim .env
 NODE_ENV=production
 
 DATABASE_URL=mysql://chenjiang:chenjiang@127.0.0.1:3306/knowledge_share
-REDIS_URL=redis://knowledge-share:生产环境Redis密码@127.0.0.1:6379/0
+REDIS_URL=redis://knowledge-share:chenjiang@127.0.0.1:6379/0
 REDIS_PREFIX=knowledge-share
 
 PUBLIC_WEB_URL=http://服务器IP:8888
@@ -791,11 +763,11 @@ docker compose up -d
 
 **Redis 报 `NOAUTH` 或 `WRONGPASS`**
 
-说明后端 `REDIS_URL` 与 Docker 里的 Redis 账号密码不一致。确认容器内认证可用：
+说明后端 `REDIS_URL` 与 `docker-compose.yml` 里的 Redis 账号密码不一致。确认容器内认证可用：
 
 ```bash
 docker exec knowledge-share-redis sh -c \
-  'redis-cli --no-auth-warning --user "$REDIS_USERNAME" --pass "$REDIS_PASSWORD" ping'
+  'redis-cli --no-auth-warning --user knowledge-share --pass "chenjiang" ping'
 ```
 
 返回 `PONG` 说明 Redis 正常。再核对 `apps/backend/.env`：
