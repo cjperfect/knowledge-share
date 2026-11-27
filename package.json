@@ -15,6 +15,8 @@
     "dev:backend": "pnpm --filter @knowledge-share/backend dev",
     "dev:website": "pnpm --filter @knowledge-share/website dev",
     "build": "pnpm -r --if-present build",
+    "build:backend": "pnpm --filter @knowledge-share/backend build",
+    "build:web": "pnpm --filter @knowledge-share/web build",
     "build:website": "pnpm --filter @knowledge-share/website build",
     "typecheck": "pnpm -r --if-present typecheck",
     "lint": "eslint .",

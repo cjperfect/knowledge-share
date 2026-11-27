@@ -19,6 +19,15 @@
 后端 API：http://127.0.0.1:3001
 ```
 
+## 构建命令
+
+| 命令                 | 作用               | 产物                 |
+| -------------------- | ------------------ | -------------------- |
+| `pnpm build:backend` | 构建 NestJS 后端   | `apps/backend/dist`  |
+| `pnpm build:web`     | 构建 Vite 管理后台 | `apps/web/dist`      |
+| `pnpm build:website` | 构建 Next.js 官网  | `apps/website/.next` |
+| `pnpm build`         | 依次构建三个项目   | 以上全部             |
+
 ## 本地部署
 
 需要 Node.js 22、pnpm、Docker。
@@ -169,7 +178,9 @@ NEXT_PUBLIC_SITE_URL=http://服务器IP:8888
 
 ```
 cd /srv/knowledge-share
-pnpm build
+pnpm build:backend
+pnpm build:web
+pnpm build:website
 pnpm --filter @knowledge-share/backend migration:run
 ```
 
@@ -249,14 +260,16 @@ pm2 status
 cd /srv/knowledge-share
 git pull
 pnpm install
-pnpm build
+pnpm build:backend
+pnpm build:web
+pnpm build:website
 pnpm --filter @knowledge-share/backend migration:run
 
 pm2 restart ks-backend --update-env
 pm2 restart ks-website --update-env
 ```
 
-只改管理后台时，重新构建 `apps/web/dist` 后无需重启进程，刷新浏览器即可。修改 Nginx 配置后执行：
+只改管理后台时，执行 `pnpm build:web`，重新构建 `apps/web/dist` 后无需重启进程，刷新浏览器即可。修改 Nginx 配置后执行：
 
 ```
 nginx -t && systemctl reload nginx
