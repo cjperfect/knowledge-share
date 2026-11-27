@@ -22,9 +22,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "pnpm -r --if-present test",
-    "prepare": "husky || true",
-    "dev:mp": "pnpm --filter @knowledge-share/miniprogram dev",
-    "build:mp": "pnpm --filter @knowledge-share/miniprogram build"
+    "prepare": "husky || true"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",

@@ -31,25 +31,38 @@ services:
       retries: 20
       start_period: 20s
 
+  # Redis 开启 ACL 认证，账号密码读取根目录 .env
   redis:
     image: redis:7.4-alpine
     container_name: knowledge-share-redis
     restart: unless-stopped
+    environment:
+      REDIS_USERNAME: ${REDIS_USERNAME:-knowledge-share}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-knowledge-share-redis}
     command:
-      - redis-server
-      - --appendonly
-      - 'yes'
-      - --appendfsync
-      - everysec
-      - --save
-      - '60'
-      - '1'
+      - sh
+      - -c
+      - |
+        set -eu
+        cat > /tmp/users.acl <<EOF
+        user default on >$${REDIS_PASSWORD} ~* &* +@all
+        user $${REDIS_USERNAME} on >$${REDIS_PASSWORD} ~* &* +@all
+        EOF
+        exec redis-server \
+          --appendonly yes \
+          --appendfsync everysec \
+          --save 60 1 \
+          --aclfile /tmp/users.acl
     ports:
       - '6379:6379'
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
+      test:
+        [
+          'CMD-SHELL',
+          'redis-cli --no-auth-warning --user "$$REDIS_USERNAME" --pass "$$REDIS_PASSWORD" ping | grep -q PONG',
+        ]
       interval: 5s
       timeout: 3s
       retries: 10

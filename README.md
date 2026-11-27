@@ -280,3 +280,567 @@
 - 表单提交时显示保存中状态，避免重复提交。
 - 桌面端使用表格/多列布局；移动端按页面切换为卡片或精简表格。
 - 活动、内容推送、产品、佣金结算均支持移动端访问。
+
+## 启动与部署
+
+### 技术栈与服务
+
+| 项目      | 目录           | 技术栈                         | 开发端口 | 生产运行方式                  |
+| --------- | -------------- | ------------------------------ | -------- | ----------------------------- |
+| 管理后台  | `apps/web`     | Vite + React + TanStack Router | `5173`   | 构建为 `dist`，Nginx 静态托管 |
+| C 端官网  | `apps/website` | Next.js                        | `3000`   | `next build` + `next start`   |
+| 后端      | `apps/backend` | NestJS + TypeORM + MySQL       | `3001`   | 构建为 `dist`，Node 运行      |
+| 数据库    | Docker         | MySQL 8.4                      | `3306`   | Docker                        |
+| 缓存/队列 | Docker         | Redis 7.4                      | `6379`   | Docker                        |
+
+运行要求：
+
+- Node.js `>= 22`
+- pnpm `10.25.0`
+- Docker + Docker Compose
+- 生产环境额外需要 PM2、Nginx
+
+### 部署端口约定
+
+当前生产约定：
+
+```text
+官网 + 报名页：对外 8888  → Nginx → 127.0.0.1:3000
+管理后台：    127.0.0.1:8080 → Nginx 静态读取 apps/web/dist
+后端 API：    127.0.0.1:3001
+MySQL：       127.0.0.1:3306
+Redis：       127.0.0.1:6379
+```
+
+公网安全组只需要放行：
+
+```text
+22    SSH，建议限制为自己的固定 IP
+8888  官网和报名页
+```
+
+管理后台默认不对外暴露，通过 SSH 隧道访问：
+
+```bash
+ssh -L 8080:127.0.0.1:8080 root@服务器IP
+```
+
+浏览器打开 `http://127.0.0.1:8080`。
+
+### 本地启动
+
+#### 1. 安装依赖
+
+```bash
+pnpm install
+```
+
+#### 2. 准备环境变量
+
+```bash
+# 根目录：Docker Compose 使用的 Redis 账号密码
+cp .env.example .env
+# 应用环境变量
+cp apps/backend/.env.example apps/backend/.env
+cp apps/website/.env.example apps/website/.env.local
+```
+
+根目录 `.env`：
+
+```bash
+REDIS_USERNAME=knowledge-share
+REDIS_PASSWORD=knowledge-share-redis
+```
+
+本地默认关键配置：
+
+```bash
+# apps/backend/.env
+NODE_ENV=development
+DATABASE_URL=mysql://chenjiang:chenjiang@127.0.0.1:3306/knowledge_share
+REDIS_URL=redis://knowledge-share:knowledge-share-redis@127.0.0.1:6379/0
+```
+
+`REDIS_URL` 里的用户名、密码必须和根目录 `.env` 保持一致，修改后重启后端。
+
+```bash
+# apps/website/.env.local
+WEBSITE_API_BASE_URL=http://127.0.0.1:3001
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
+本地首次启动会创建超级管理员 `admin / admin`。
+
+#### 3. 启动 MySQL 和 Redis
+
+```bash
+docker compose up -d
+docker compose ps
+```
+
+#### 4. 执行数据库迁移
+
+```bash
+pnpm --filter @knowledge-share/backend migration:run
+```
+
+#### 5. 启动三个项目
+
+```bash
+pnpm dev
+```
+
+启动后：
+
+```text
+管理后台：http://localhost:5173
+C 端官网：http://localhost:3000
+后端：    http://localhost:3001
+健康检查：http://localhost:3001/health
+```
+
+也可以单独启动：
+
+```bash
+pnpm dev:web
+pnpm dev:website
+pnpm dev:backend
+```
+
+### 生产部署（阿里云 Linux）
+
+以下以项目目录 `/srv/knowledge-share`、服务器 IP 访问、暂不使用域名为例。
+
+#### 1. 安装基础环境
+
+```bash
+dnf install -y git nginx
+```
+
+安装 Node.js 22、pnpm、PM2：
+
+```bash
+node -v
+pnpm -v
+pm2 -v
+```
+
+没有时按项目根目录 `package.json` 的 `engines` 与 `packageManager` 版本安装。
+
+#### 2. 准备代码
+
+```bash
+cd /srv
+git clone <仓库地址> knowledge-share
+cd /srv/knowledge-share
+```
+
+如果服务器访问 GitHub 不稳定，可以在本地执行：
+
+```bash
+git bundle create knowledge-share.bundle --all
+scp knowledge-share.bundle root@服务器IP:/srv/
+```
+
+服务器上：
+
+```bash
+cd /srv
+git clone knowledge-share.bundle knowledge-share
+```
+
+#### 3. 配置 Docker 镜像加速
+
+国内服务器直接拉取 Docker Hub 容易失败。先配置 `/etc/docker/daemon.json`：
+
+```json
+{
+  "registry-mirrors": [
+    "https://docker.m.daocloud.io",
+    "https://docker.1ms.run",
+    "https://docker.1panel.live",
+    "https://hub.rat.dev"
+  ]
+}
+```
+
+如果已有 `daemon.json`，只合并 `registry-mirrors`，不要覆盖其他配置。
+
+```bash
+systemctl daemon-reload
+systemctl restart docker
+docker info | grep -A10 "Registry Mirrors"
+```
+
+#### 4. 启动 MySQL 和 Redis
+
+生产环境先把 `docker-compose.yml` 的端口限制在本机：
+
+```yaml
+ports:
+  - '127.0.0.1:3306:3306'
+  - '127.0.0.1:6379:6379'
+```
+
+然后创建 Docker Compose 的 Redis 账号密码：
+
+```bash
+cd /srv/knowledge-share
+cp .env.example .env
+vim .env
+```
+
+```bash
+# /srv/knowledge-share/.env
+REDIS_USERNAME=knowledge-share
+REDIS_PASSWORD=生产环境Redis密码
+```
+
+生成随机密码：
+
+```bash
+openssl rand -hex 24
+```
+
+把输出填到 `REDIS_PASSWORD`，并同步写入后端 `REDIS_URL`。密码建议只用字母和数字，避免 URL 和 ACL 特殊字符转义。
+
+```bash
+docker compose up -d
+docker compose ps
+```
+
+Redis 已开启 ACL 认证：默认用户和业务用户都需要密码，未认证执行 `redis-cli ping` 会返回 `NOAUTH Authentication required.`。
+
+#### 5. 配置后端环境变量
+
+```bash
+cd /srv/knowledge-share/apps/backend
+cp .env.example .env
+vim .env
+```
+
+生产最小配置：
+
+```bash
+NODE_ENV=production
+
+DATABASE_URL=mysql://chenjiang:chenjiang@127.0.0.1:3306/knowledge_share
+REDIS_URL=redis://knowledge-share:生产环境Redis密码@127.0.0.1:6379/0
+REDIS_PREFIX=knowledge-share
+
+PUBLIC_WEB_URL=http://服务器IP:8888
+CORS_ORIGIN=http://服务器IP:8888,http://服务器IP:8080
+
+AUTH_JWT_SECRET=至少32位固定随机字符串
+ACTIVITY_LINK_SECRET=至少32位固定随机字符串
+AUTH_BOOTSTRAP_PASSWORD=至少12位首次初始化密码
+
+AI_API_KEY=你的模型接口密钥
+```
+
+注意：
+
+- 生产空库首次启动时 `AUTH_BOOTSTRAP_PASSWORD` 至少 12 字符，否则后端会启动失败。
+- `AUTH_JWT_SECRET` 和 `ACTIVITY_LINK_SECRET` 必须固定，不能每次启动重新生成，否则登录态、报名链接和二维码会失效。
+- 当前用 HTTP + IP 访问时，`CORS_ORIGIN` 必须精确包含 `http://服务器IP:8888`。
+- `PUBLIC_WEB_URL` 决定海报二维码和邀请链接的域名，必须是用户可访问的官网地址。
+
+#### 6. 配置官网环境变量
+
+```bash
+cd /srv/knowledge-share/apps/website
+cp .env.example .env.local
+vim .env.local
+```
+
+```bash
+WEBSITE_API_BASE_URL=http://127.0.0.1:3001
+NEXT_PUBLIC_SITE_URL=http://服务器IP:8888
+```
+
+`WEBSITE_API_BASE_URL` 是官网服务端请求后端的地址，走本机，不要写公网 IP。
+
+#### 7. 安装依赖并构建三端
+
+```bash
+cd /srv/knowledge-share
+pnpm install
+pnpm build
+```
+
+构建产物：
+
+```text
+apps/backend/dist      后端
+apps/web/dist          管理后台静态文件
+apps/website/.next     Next.js 官网
+```
+
+#### 8. 执行数据库迁移
+
+```bash
+pnpm --filter @knowledge-share/backend migration:run
+```
+
+#### 9. 启动后端和官网
+
+如果已有旧进程，先删除：
+
+```bash
+pm2 delete ks-backend ks-website 2>/dev/null || true
+```
+
+启动后端：
+
+```bash
+pm2 start pnpm --name ks-backend -- \
+  --filter @knowledge-share/backend start:prod
+```
+
+启动官网：
+
+```bash
+pm2 start pnpm --name ks-website -- \
+  --filter @knowledge-share/website start
+```
+
+保存进程并设置开机自启：
+
+```bash
+pm2 save
+pm2 startup
+```
+
+`pm2 startup` 会输出一条命令，按提示执行一次即可。
+
+查看状态和日志：
+
+```bash
+pm2 status
+pm2 logs ks-backend
+pm2 logs ks-website
+```
+
+管理后台是静态站点，不需要 PM2 进程。
+
+#### 10. 配置 Nginx
+
+仓库中的完整配置：
+
+```text
+deploy/nginx/knowledge-share.conf
+```
+
+复制到服务器：
+
+```bash
+cp /srv/knowledge-share/deploy/nginx/knowledge-share.conf \
+  /etc/nginx/conf.d/knowledge-share.conf
+```
+
+这份配置约定：
+
+```text
+对外 8888  → Next.js 3000
+本机 8080  → apps/web/dist
+本机 3001  → 后端
+```
+
+需要清理 Nginx 自带的 80 默认站点，否则 80 被占用时 Nginx 会启动失败：
+
+```bash
+grep -RIn --include='*.conf' -E 'listen[[:space:]]+80|listen[[:space:]]+[^;]*:80' /etc/nginx
+```
+
+重点检查：
+
+- `/etc/nginx/nginx.conf` 里默认 `server { listen 80; listen [::]:80; }` 整块
+- `/etc/nginx/conf.d/default.conf`
+
+处理掉所有 `listen 80` 后检查：
+
+```bash
+nginx -T 2>/dev/null | grep -E 'configuration file|listen'
+```
+
+正常只应看到：
+
+```nginx
+listen 8888 default_server;
+listen 127.0.0.1:8080;
+```
+
+启动 Nginx：
+
+```bash
+nginx -t
+systemctl enable nginx
+systemctl start nginx
+systemctl status nginx
+```
+
+后续只改配置时：
+
+```bash
+nginx -t
+systemctl reload nginx
+```
+
+#### 11. 验证启动结果
+
+```bash
+curl http://127.0.0.1:3001/health
+curl -I http://127.0.0.1:3000/
+curl -I http://127.0.0.1:8888/
+curl -I http://127.0.0.1:8080/
+```
+
+浏览器访问：
+
+```text
+官网：    http://服务器IP:8888/
+报名页：  http://服务器IP:8888/join?activity=xxx
+管理后台：先建立 SSH 隧道，再访问 http://127.0.0.1:8080
+```
+
+### 更新发布流程
+
+```bash
+cd /srv/knowledge-share
+git pull
+
+pnpm install
+pnpm build
+
+pnpm --filter @knowledge-share/backend migration:run
+
+pm2 restart ks-backend --update-env
+pm2 restart ks-website --update-env
+
+nginx -t
+systemctl reload nginx
+```
+
+只改管理后台时：
+
+```bash
+pnpm --filter @knowledge-share/web build
+```
+
+Nginx 直接读 `apps/web/dist`，刷新页面即可，不需要重启进程。
+
+只改官网时：
+
+```bash
+pnpm --filter @knowledge-share/website build
+pm2 restart ks-website --update-env
+```
+
+只改后端时：
+
+```bash
+pnpm --filter @knowledge-share/backend build
+pm2 restart ks-backend --update-env
+```
+
+### 常见问题
+
+**Nginx 报 `Address already in use`**
+
+说明还有配置在监听被占用的端口。`nginx -t` 只检查语法，不检查端口。
+
+```bash
+nginx -T 2>/dev/null | grep -B5 'listen.*80'
+ss -lntp | grep ':80 '
+```
+
+常见来源：
+
+- `/etc/nginx/nginx.conf` 自带默认 `server` 监听 80
+- `/etc/nginx/conf.d/default.conf`
+- Apache/httpd 或其他程序占用 80
+
+如果 Nginx 只需要 8888，把 Nginx 自己的 80 配置全部移除即可，不必强行停掉其他占用 80 的程序。
+
+**Docker 拉取镜像失败**
+
+```text
+dial tcp ...: connect: connection refused
+```
+
+先配置 `registry-mirrors`，再：
+
+```bash
+systemctl restart docker
+docker pull mysql:8.4
+docker pull redis:7.4-alpine
+docker compose up -d
+```
+
+仍失败时可直接从加速器地址拉取并打本地 tag：
+
+```bash
+docker pull docker.m.daocloud.io/library/mysql:8.4
+docker tag docker.m.daocloud.io/library/mysql:8.4 mysql:8.4
+
+docker pull docker.m.daocloud.io/library/redis:7.4-alpine
+docker tag docker.m.daocloud.io/library/redis:7.4-alpine redis:7.4-alpine
+
+docker compose up -d
+```
+
+**Redis 报 `NOAUTH` 或 `WRONGPASS`**
+
+说明后端 `REDIS_URL` 与 Docker 里的 Redis 账号密码不一致。确认容器内认证可用：
+
+```bash
+docker exec knowledge-share-redis sh -c \
+  'redis-cli --no-auth-warning --user "$REDIS_USERNAME" --pass "$REDIS_PASSWORD" ping'
+```
+
+返回 `PONG` 说明 Redis 正常。再核对 `apps/backend/.env`：
+
+```bash
+REDIS_URL=redis://knowledge-share:密码@127.0.0.1:6379/0
+```
+
+修改根目录 `.env` 后要重建 Redis，修改后端 `.env` 后要重启后端：
+
+```bash
+docker compose up -d --force-recreate redis
+pm2 restart ks-backend --update-env
+```
+
+**后端启动提示 `AUTH_BOOTSTRAP_PASSWORD` 长度不足**
+
+生产空库首次启动要求至少 12 字符：
+
+```bash
+AUTH_BOOTSTRAP_PASSWORD=至少12位密码
+```
+
+修改后重启：
+
+```bash
+pm2 restart ks-backend --update-env
+```
+
+**管理后台 8080 打不开**
+
+默认配置只监听本机：
+
+```nginx
+listen 127.0.0.1:8080;
+```
+
+通过 SSH 隧道访问：
+
+```bash
+ssh -L 8080:127.0.0.1:8080 root@服务器IP
+```
+
+如果确实要公网访问，把监听改成 `listen 8080;`，并在安全组放行 8080。
+
+**官网 `/website` 返回 404**
+
+`/website` 不是官网路由，官网根路径是 `/`。访问 `http://服务器IP:8888/website` 会进入 404 页面，这是正常行为。
